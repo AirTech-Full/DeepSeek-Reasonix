@@ -58,6 +58,15 @@ pub fn render_cards(
     let view_top = total.saturating_sub(view_h).saturating_sub(offset);
     let dest_top = bottom.saturating_sub(view_h);
 
+    // ── Clear gap between boot content and visible card view ──
+    for y in start_row..dest_top {
+        for x in 0..scroll_w {
+            let cell = &mut buf[(area.x + x, y)];
+            cell.set_symbol(" ");
+            cell.set_skip(false);
+        }
+    }
+
     for dy in 0..view_h {
         let src_y = view_top + dy;
         if src_y >= total {
@@ -205,11 +214,8 @@ pub(super) fn wrap_visual(line: &str, width: u16) -> Vec<String> {
         current.push(ch);
         current_w += ch_w;
     }
-    if !current.is_empty() {
+    if !current.is_empty() || out.is_empty() {
         out.push(current);
-    }
-    if out.is_empty() {
-        out.push(String::new());
     }
     out
 }

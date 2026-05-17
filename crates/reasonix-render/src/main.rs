@@ -18,7 +18,7 @@ use reasonix_render::frame_cache::FrameCache;
 use reasonix_render::input::{is_quit, paste_event, translate_key, translate_mouse};
 use reasonix_render::state::{decode_message, Payload};
 use reasonix_render::view::render_setup;
-use reasonix_render::whole_screen::{
+use reasonix_render::whole_screen::{composer_cursor_position, 
     at_completion, at_match_count, cards_layout, demo_state, extract_text, slash_completion,
     slash_is_exact, slash_match_count, Selection, WholeScreen,
 };
@@ -699,6 +699,13 @@ fn draw_atomic_with_ui(
                             .with_tick(tick),
                         area,
                     );
+                    // ── Position terminal cursor at composer input ──
+                    // In raw mode, typed characters appear at the hardware cursor.
+                    // Without explicit set_cursor, the cursor drifts to a random
+                    // screen location instead of the composer box.
+                    if let Some((cx, cy)) = composer_cursor_position(state, area) {
+                        f.set_cursor(cx, cy);
+                    }
                 }
                 Payload::Setup(state) => render_setup(state, f),
             }
@@ -742,14 +749,8 @@ fn emit_input_loop() -> Result<()> {
                 let Some(translated) = translate_key(&key) else {
                     continue;
                 };
-                let json = serde_json::to_string(&translated).context("serialize input event")?;
-                writeln!(out, "{json}").context("write input event")?;
-                out.flush().context("flush stdout")?;
-            }
-            Event::Paste(text) => {
-                let event = paste_event(text);
-                let json = serde_json::to_string(&event).context("serialize paste event")?;
-                writeln!(out, "{json}").context("write paste event")?;
+                let json = serde_json::to_string(&translated).context("serialize key")?;
+                writeln!(out, "{json}").context("write key event")?;
                 out.flush().context("flush stdout")?;
             }
             Event::Mouse(m) => {
