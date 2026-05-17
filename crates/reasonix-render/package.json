@@ -1,0 +1,24 @@
+{
+  "name": "@reasonix/render-native",
+  "version": "0.45.0-dev.0",
+  "description": "Reasonix ratatui renderer — N-API native node module. Replaces the per-platform spawn-binary subpackages with in-process Rust loaded via napi-rs.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": ["index.js", "index.d.ts", "*.node"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/esengine/DeepSeek-Reasonix.git",
+    "directory": "crates/reasonix-render"
+  },
+  "napi": {
+    "binaryName": "reasonix-render",
+    "targets": [
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin"
+    ]
+  }
+}

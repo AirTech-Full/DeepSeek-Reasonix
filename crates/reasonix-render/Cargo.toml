@@ -5,14 +5,34 @@ edition.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[lib]
+# cdylib → .node native module loadable from Node via napi-rs
+# rlib   → keep usable from the bin target + integration tests
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+# Renamed from reasonix-render → reasonix-render-cli: cargo refuses two
+# targets in the same package with the same name (the cdylib lib needs
+# `reasonix_render` and the bin had `reasonix-render`, which hashes to
+# the same crate name and breaks `napi build`'s artifact discovery).
+# The bin is a dev-only fallback for cargo-run smoke tests now that
+# napi-rs is the production path; renaming has zero shipping impact.
+name = "reasonix-render-cli"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1"
 arboard = { version = "3", default-features = false }
 chrono = { version = "0.4", features = ["clock"] }
 crossterm = "0.29"
 ctrlc = { version = "3", features = ["termination"] }
+napi = { version = "2", features = ["napi6", "serde-json"] }
+napi-derive = { version = "2", features = ["type-def"] }
 pulldown-cmark = { version = "0.13", default-features = false }
 ratatui = "0.30"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 unicode-width = "0.2"
+
+[build-dependencies]
+napi-build = "2"

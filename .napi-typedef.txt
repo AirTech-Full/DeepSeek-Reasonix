@@ -1,0 +1,2 @@
+{"kind": "fn", "name": "version", "js_doc": "", "def": "export declare function version(): string"}
+{"kind": "fn", "name": "ping", "js_doc": "", "def": "export declare function ping(): string"}

@@ -26,7 +26,8 @@
   ],
   "scripts": {
     "build": "tsup && node scripts/copy-dashboard-vendor-css.mjs",
-    "rust:build": "cargo build --release --bin reasonix-render",
+    "rust:build": "cargo build --release --bin reasonix-render-cli",
+    "rust:napi": "cd crates/reasonix-render && napi build --release --platform",
     "render:versions:sync": "node scripts/sync-render-versions.mjs",
     "render:versions:check": "node scripts/sync-render-versions.mjs --check",
     "dev:prepare": "node scripts/dev-prepare.mjs",
@@ -88,6 +89,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@napi-rs/cli": "^3.6.2",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^22.9.0",

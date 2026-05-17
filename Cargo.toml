@@ -7,3 +7,9 @@ resolver = "2"
 edition = "2021"
 license = "MIT"
 publish = false
+
+[profile.release]
+# LTO across the whole crate for the smallest .node payload — napi-rs
+# subpackages ship per platform, so binary size shows up directly in
+# user install time.
+lto = true

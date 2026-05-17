@@ -3,6 +3,7 @@ pub mod editor;
 pub mod frame_cache;
 pub mod input;
 pub mod integrated;
+pub mod napi_bridge;
 pub mod state;
 pub mod theme;
 pub mod view;

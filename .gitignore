@@ -51,3 +51,7 @@ desktop/src-tauri/binaries/
 # Design mock-up reference (local, not part of repo)
 .design-ref/
 *.cpuprofile
+
+# napi-rs build artifacts (committed only via release workflow publishing)
+crates/reasonix-render/*.node
+crates/reasonix-render/npm/*/*.node

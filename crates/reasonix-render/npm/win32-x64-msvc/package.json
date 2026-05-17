@@ -1,0 +1,21 @@
+{
+  "name": "@reasonix/render-native-win32-x64-msvc",
+  "version": "0.45.0-dev.0",
+  "cpu": [
+    "x64"
+  ],
+  "main": "reasonix-render.win32-x64-msvc.node",
+  "files": [
+    "reasonix-render.win32-x64-msvc.node"
+  ],
+  "description": "Reasonix ratatui renderer — N-API native node module. Replaces the per-platform spawn-binary subpackages with in-process Rust loaded via napi-rs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/esengine/DeepSeek-Reasonix.git",
+    "directory": "crates/reasonix-render"
+  },
+  "os": [
+    "win32"
+  ]
+}
