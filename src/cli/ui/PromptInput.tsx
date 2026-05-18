@@ -203,11 +203,11 @@ export function PromptInput({
   // Sync system cursor to visual cursor on Windows for IME positioning.
   // Ink renders the full screen via ANSI sequences; the actual system
   // cursor (queried by Windows IME via Console API) ends up at the last
-  // output position — not at the visual "▌".  Repositioning it after each
-  // render lets the IME candidate window track the real input position.
+  // output position — not at the visual "▌".  Repositioning it after
+  // each render lets the IME candidate window track the real input.
   useEffect(() => {
-    if (!stdout || process.platform !== 'win32') return;
-    // Offset from the last output position (bottom border) up to the
+    if (!stdout || process.platform !== "win32") return;
+    // Offset from the last output line (bottom border) up to the
     // cursor line, then right to the cursor column.  Values are tuned
     // to the border + padding + hint-row layout of the render below.
     const bottomBorder = 1;
@@ -216,8 +216,8 @@ export function PromptInput({
     const largeHints = showHugeBufferHints ? 1 : 0;
     const linesBelow = lines.length - 1 - cursorLine;
     const up = bottomBorder + hintMargin + hintLine + largeHints + linesBelow;
-    const right = 1 + 1 + 2 + cursorCol;  // border + padding + prefix/indent
-    if (up > 0) stdout.write(`\x1b[${up}A\x1b[${right}C`);
+    const right = 1 + 1 + 2 + cursorCol; // border + padding + prefix/indent
+    if (up > 0) stdout.write("\x1b[" + up + "A\x1b[" + right + "C");
   }, [cursor, value, disabled, stdout, cursorLine, cursorCol, lines.length, showHugeBufferHints]);
 
   return (
