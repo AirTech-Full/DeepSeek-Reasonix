@@ -200,6 +200,30 @@ export function PromptInput({
   const renderItems = collapseLinesForDisplay(lines, cursorLine);
   const showHugeBufferHints = lines.length > 20;
 
+  // Layout constants shared with the IME cursor-sync effect below.
+  const BORDER_WIDTH = 1;
+  const HINT_ROW_HEIGHT = 1;
+  const PREFIX_CELLS = 2;
+
+  // Sync system cursor to visual cursor on Windows for IME positioning.
+  // Ink renders the full screen via ANSI sequences; the actual system
+  // cursor (queried by Windows IME via Console API) ends up at the last
+  // output position — not at the visual "▌".  Repositioning it after
+  // each render lets the IME candidate window track the real input.
+  useEffect(() => {
+    if (!stdout || process.platform !== "win32") return;
+    // Re-derive inside the effect so only stable primitives (value,
+    // cursor) appear in the deps array — avoids biome
+    // useExhaustiveDependencies warnings on derived locals.
+    const lineCount = value.length > 0 ? value.split("\n").length : 1;
+    const { line: curLine, col: curCol } = lineAndColumn(value, cursor);
+    const largeHints = lineCount > 20 ? 1 : 0;
+    const linesBelow = lineCount - 1 - curLine;
+    const up = BORDER_WIDTH + 1 + HINT_ROW_HEIGHT + largeHints + linesBelow;
+    const right = BORDER_WIDTH + 1 + PREFIX_CELLS + curCol;
+    if (up > 0) stdout.write("\x1b[" + up + "A\x1b[" + right + "C");
+  }, [cursor, value, disabled, stdout]);
+
   return (
     <Box flexDirection="column" borderStyle="round" borderColor={accentColor} paddingX={1}>
       {(() => {
