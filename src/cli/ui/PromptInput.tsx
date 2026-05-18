@@ -16,12 +16,23 @@ import {
 } from "./paste-sentinels.js";
 import { type Segment, buildViewport, stringCells } from "./prompt-viewport.js";
 import { FG, SURFACE, TONE } from "./theme/tokens.js";
-import { useCursorBlink } from "./ticker.js";
 
 /** Raw-stdin keystroke bus → multiline reducer; one logical line per Box row, viewport-clipped. */
 
 /** Pastes shorter than this AND single-line render verbatim; longer ones become a `[paste #N · …]` sentinel chip (#397). */
 export const INLINE_PASTE_THRESHOLD = 200;
+
+// Tight enough that a normal typed Enter (≥80ms after the last keystroke
+// for human cadence) still submits; wide enough that CJK IME commit-then-
+// Enter (terminal flushes both together) falls inside the window.
+const IME_GUARD_MS = 50;
+
+function hasNonAscii(s: string): boolean {
+  for (let i = 0; i < s.length; i++) {
+    if (s.charCodeAt(i) > 0x7f) return true;
+  }
+  return false;
+}
 
 export function shouldInlinePaste(content: string): boolean {
   return !content.includes("\n") && content.length <= INLINE_PASTE_THRESHOLD;
@@ -70,6 +81,11 @@ export function PromptInput({
   const pastesRef = useRef<Map<number, PasteEntry>>(new Map());
   const nextPasteIdRef = useRef<number>(0);
 
+  // CJK IMEs commit the candidate then often pass the trigger Enter through
+  // as a real keystroke; terminals can't expose composition state. If submit
+  // fires within IME_GUARD_MS of non-ASCII input we treat it as that commit-Enter.
+  const lastNonAsciiInputAtRef = useRef(0);
+
   // Refs (not props/state) — multiple keystrokes in one stdin chunk dispatch
   // before re-render, so the handler must read the latest value/cursor.
   const lastLocalValueRef = useRef(value);
@@ -108,6 +124,9 @@ export function PromptInput({
       if (ev.input.length > 0) registerPaste(ev.input);
       return;
     }
+    if (ev.input.length > 0 && hasNonAscii(ev.input)) {
+      lastNonAsciiInputAtRef.current = Date.now();
+    }
     const key: MultilineKey = {
       input: ev.input,
       return: ev.return,
@@ -141,6 +160,10 @@ export function PromptInput({
       setCursor(action.cursor);
     }
     if (action.submit) {
+      if (Date.now() - lastNonAsciiInputAtRef.current < IME_GUARD_MS) {
+        lastNonAsciiInputAtRef.current = 0;
+        return;
+      }
       const raw = action.submitValue ?? lastLocalValueRef.current;
       const expanded = expandPasteSentinels(raw, pastesRef.current);
       const reachable = new Set(listPasteIdsInBuffer(raw));
@@ -171,14 +194,31 @@ export function PromptInput({
 
   const lines = value.length > 0 ? value.split("\n") : [""];
   const accentColor = disabled ? FG.faint : TONE.brand;
-  const cursorVisible = useCursorBlink();
+  const cursorVisible = true;
   const { line: cursorLine, col: cursorCol } = lineAndColumn(value, cursor);
 
   const renderItems = collapseLinesForDisplay(lines, cursorLine);
   const showHugeBufferHints = lines.length > 20;
 
+  // Sync system cursor to visual cursor on Windows for IME positioning.
+  // Ink renders the full screen via ANSI sequences but the actual system
+  // cursor (which Windows IME queries via Console API) ends up at the last
+  // output byte — not at the visual "▌".  Repositioning it after each render
+  // lets the IME candidate window track the real input position.
+  useEffect(() => {
+    if (!stdout || process.platform !== 'win32') return;
+    const bottomBorder = 1;
+    const hintMargin = 1;
+    const hintLine = 1;
+    const largeHints = showHugeBufferHints ? 1 : 0;
+    const linesBelow = lines.length - 1 - cursorLine;
+    const up = bottomBorder + hintMargin + hintLine + largeHints + linesBelow;
+    const right = 1 + 1 + 2 + cursorCol;  // border + padding + prefix/indent
+    if (up > 0) stdout.write(`\x1b[${up}A\x1b[${right}C`);
+  }, [cursor, value, disabled, stdout, cursorLine, cursorCol, lines.length, showHugeBufferHints]);
+
   return (
-    <Box flexDirection="column" paddingX={1}>
+    <Box flexDirection="column" borderStyle="round" borderColor={accentColor} paddingX={1}>
       {(() => {
         const rows: React.ReactNode[] = [];
         let firstRowEmitted = false;
@@ -311,9 +351,13 @@ export function PromptInput({
 }
 
 export function HintRow(): React.ReactElement {
+  // On Windows legacy console (cmd.exe without ConPTY), Shift+Enter is
+  // indistinguishable from Enter.  Ctrl+J (0x0A) already inserts a newline
+  // so showing it in the hint avoids user confusion.
+  const isLegacyWin = process.platform === 'win32' && !process.env.WT_SESSION;
   const items: Array<{ key: string; tKey: string }> = [
     { key: "\u23ce", tKey: "composer.hintSend" },
-    { key: "\u21e7\u23ce", tKey: "composer.hintNewline" },
+    { key: isLegacyWin ? "^J" : "\u21e7\u23ce", tKey: "composer.hintNewline" },
     { key: "^U", tKey: "composer.hintClear" },
     { key: "^P/^N", tKey: "composer.hintHistory" },
     { key: "esc", tKey: "composer.hintAbort" },

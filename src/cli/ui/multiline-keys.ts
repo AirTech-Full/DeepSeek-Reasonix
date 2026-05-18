@@ -199,6 +199,10 @@ export function processMultilineKey(
       const replaced = `${value.slice(0, -1)}\n`;
       return { next: replaced, cursor: replaced.length, submit: false };
     }
+    // Ctrl+Enter → insert newline.  Works on terminals that support
+    // modifyOtherKeys; a no-op otherwise (bare Enter never sets ctrl).
+    // Complements Shift+Enter and Alt+Enter as newline shortcuts.
+    if (key.ctrl) return insertAt(value, cursor, "\n");
     return { next: null, cursor: null, submit: true, submitValue: value };
   }
 
