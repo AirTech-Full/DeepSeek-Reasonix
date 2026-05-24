@@ -214,18 +214,7 @@ export const Markdown = memo(function Markdown({ source }: { source: string }) {
           pre: ({ children }) => {
             // react-markdown v9 nests children unpredictably — flatten all text.
             const rawText = flattenChildText(children).trimEnd();
-            // Extract lang from child element's className prop.
-            let lang = "text";
-            for (const kid of Children.toArray(children)) {
-              if (isValidElement(kid)) {
-                const cls = (kid.props as Record<string, unknown>).className;
-                if (typeof cls === "string") {
-                  const m = cls.match(/language-([\w-]+)/);
-                  if (m) { lang = m[1]!; break; }
-                }
-              }
-            }
-            return <CodeBlock lang={lang} text={rawText} />;
+            return <CodeBlock lang={extractFencedLang(children)} text={rawText} />;
           },
           code: ({ className, children }) => {
             const text = String(children ?? "");
@@ -303,7 +292,19 @@ function SafeLink({ href, children }: { href?: string; children: ReactNode }) {
   );
 }
 
-/** Recursively extract plain text from React children (handles nested elements, fragments, etc.). */
+export function extractFencedLang(children: ReactNode): string {
+  for (const kid of Children.toArray(children)) {
+    if (isValidElement(kid)) {
+      const cls = (kid.props as Record<string, unknown>).className;
+      if (typeof cls === "string") {
+        const m = cls.match(/language-([\w-]+)/);
+        if (m) return m[1]!;
+      }
+    }
+  }
+  return "text";
+}
+
 function flattenChildText(node: ReactNode): string {
   if (typeof node === "string" || typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(flattenChildText).join("");

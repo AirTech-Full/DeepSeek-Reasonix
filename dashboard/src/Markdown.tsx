@@ -7,7 +7,6 @@ import {
   createContext,
   isValidElement,
   memo,
-  type ReactElement,
   type ReactNode,
   useContext,
   useState,
@@ -156,14 +155,9 @@ export const Markdown = memo(function Markdown({ source }: { source: string }) {
         rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}
         components={{
           pre: ({ children }) => {
-            const codeEl = Children.toArray(children).find(
-              (c): c is ReactElement<{ className?: string; children?: ReactNode }> =>
-                isValidElement(c) && c.type === "code",
-            );
-            if (!codeEl) return <pre>{children}</pre>;
-            const text = String(codeEl.props.children ?? "").replace(/\n$/, "");
-            const lang = /language-([\w-]+)/.exec(codeEl.props.className ?? "")?.[1] ?? "text";
-            return <CodeBlock lang={lang} text={text} />;
+            // react-markdown v9 nests children unpredictably — flatten all text.
+            const rawText = flattenChildText(children).trimEnd();
+            return <CodeBlock lang={extractFencedLang(children)} text={rawText} />;
           },
           code: ({ className, children }) => <code className={className}>{children}</code>,
           a: ({ href, children }) => <SafeLink href={href}>{children}</SafeLink>,
@@ -227,6 +221,27 @@ function SafeLink({ href, children }: { href?: string; children: ReactNode }) {
       ) : null}
     </a>
   );
+}
+
+export function extractFencedLang(children: ReactNode): string {
+  for (const kid of Children.toArray(children)) {
+    if (isValidElement(kid)) {
+      const cls = (kid.props as Record<string, unknown>).className;
+      if (typeof cls === "string") {
+        const m = cls.match(/language-([\w-]+)/);
+        if (m) return m[1]!;
+      }
+    }
+  }
+  return "text";
+}
+
+function flattenChildText(node: ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(flattenChildText).join("");
+  if (isValidElement(node))
+    return flattenChildText((node.props as { children?: ReactNode }).children);
+  return "";
 }
 
 function CodeBlock({ lang, text }: { lang: string; text: string }): ReactNode {
