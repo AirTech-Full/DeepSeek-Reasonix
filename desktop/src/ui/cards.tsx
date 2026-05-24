@@ -236,6 +236,7 @@ export function ShellCard({
       kind="shell"
       name="shell"
       compact
+      defaultOpen={state !== "done"}
       meta={
         <>
           {state === "await" ? (

@@ -39,10 +39,12 @@ export const UserMsg = memo(function UserMsg({
   text,
   time,
   skill,
+  onEdit,
 }: {
   text: string;
   time?: string;
   skill?: SkillOrigin;
+  onEdit?: (text: string) => void;
 }) {
   useLang();
   const [copied, setCopied] = useState(false);
@@ -73,6 +75,16 @@ export const UserMsg = memo(function UserMsg({
         </div>
         <div className="msg-text">{text}</div>
         <div className="msg-actions">
+          {onEdit ? (
+            <button
+              type="button"
+              className="edit-btn"
+              onClick={() => onEdit(text)}
+              title={t("thread.editMessage")}
+            >
+              <I.pencil size={11} />
+            </button>
+          ) : null}
           <button
             type="button"
             className={`copy-btn ${copied ? "done" : ""}`}
