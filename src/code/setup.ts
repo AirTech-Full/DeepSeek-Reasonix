@@ -13,6 +13,7 @@ import {
   searchEnabled,
 } from "../config.js";
 import { bootstrapSemanticSearchInCodeMode } from "../index/semantic/tool.js";
+import { bootstrapSymbolSearch } from "../index/symbol/tool.js";
 import { ToolRegistry } from "../tools.js";
 import { registerChoiceTool } from "../tools/choice.js";
 import { registerCodeQueryTools } from "../tools/code-query.js";
@@ -51,6 +52,7 @@ export interface CodeToolset {
   registerRooted: (root: string) => void;
   reBootstrapSemantic: (root: string) => Promise<{ enabled: boolean }>;
   semantic: { enabled: boolean };
+  symbol: { enabled: boolean };
 }
 
 /** Mirror `editMode === "plan"` into the registry's dispatch gate — keeps a single source of truth (the persisted EditMode) for the read-only mode. */
@@ -132,5 +134,7 @@ export async function buildCodeToolset(opts: CodeToolsetOpts): Promise<CodeTools
 
   const semantic = await reBootstrapSemantic(opts.rootDir);
 
-  return { tools, jobs, registerRooted, reBootstrapSemantic, semantic };
+  const symbol = await bootstrapSymbolSearch(tools, opts.rootDir);
+
+  return { tools, jobs, registerRooted, reBootstrapSemantic, semantic, symbol };
 }
