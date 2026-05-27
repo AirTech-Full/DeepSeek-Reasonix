@@ -1,4 +1,4 @@
-/** `reasonix index` — progress writes go to stderr so stdout stays pipeable. */
+/** `reasonix index` — builds semantic (or symbol) index. Progress on stderr. */
 
 import { resolve } from "node:path";
 import { loadIndexConfig, resolveSemanticEmbeddingConfig } from "../../config.js";
@@ -6,6 +6,7 @@ import { buildIndex } from "../../index/semantic/builder.js";
 import type { BuildProgress, BuildResult, SkipBuckets } from "../../index/semantic/builder.js";
 import { t } from "../../index/semantic/i18n.js";
 import { semanticPreflight } from "../../index/semantic/preflight.js";
+import { buildSymbolIndex } from "../../index/symbol/builder.js";
 
 export interface IndexCommandOptions {
   rebuild?: boolean;
@@ -13,10 +14,35 @@ export interface IndexCommandOptions {
   dir?: string;
   ollamaUrl?: string;
   yes?: boolean;
+  symbols?: boolean;
 }
 
 export async function indexCommand(opts: IndexCommandOptions = {}): Promise<void> {
   const root = resolve(opts.dir ?? process.cwd());
+
+  // Symbol index — no model required, just tree-sitter
+  if (opts.symbols) {
+    const t0 = Date.now();
+    process.stderr.write("Building symbol index…\n");
+    const result = await buildSymbolIndex(root, {
+      indexConfig: loadIndexConfig(),
+      onProgress: (p) => {
+        if (p.phase === "extract" && p.filesScanned) {
+          process.stderr.write(
+            `\r  ${p.filesScanned} files scanned, ${p.symbolsFound ?? 0} symbols found`,
+          );
+        }
+      },
+    });
+    const seconds = ((Date.now() - t0) / 1000).toFixed(1);
+    process.stderr.write(
+      `\r✓ ${result.symbolsFound} symbols in ${result.filesExtracted} files (${seconds}s)\n`,
+    );
+    if (result.filesSkipped > 0) {
+      process.stderr.write(`  · skipped ${result.filesSkipped} files\n`);
+    }
+    return;
+  }
   const tty = process.stderr.isTTY === true && process.stdin.isTTY === true;
   const resolved = resolveSemanticEmbeddingConfig();
   const embedding =

@@ -653,6 +653,10 @@ program
   .option("--dir <path>", t("ui.projectDirHint"))
   .option("--ollama-url <url>", t("ui.ollamaUrlHint"))
   .option("-y, --yes", t("ui.skipPromptsHint"))
+  .option(
+    "--symbols",
+    "Build the symbol knowledge graph index (callers/callees/impact). No embedding model required.",
+  )
   .action(
     async (opts: {
       rebuild?: boolean;
@@ -660,6 +664,7 @@ program
       dir?: string;
       ollamaUrl?: string;
       yes?: boolean;
+      symbols?: boolean;
     }) => {
       const { indexCommand } = await import("./commands/index.js");
       await indexCommand(opts);
